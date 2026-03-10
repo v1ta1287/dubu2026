@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+</head>
+
+<body>
+    <div id="game-container"></div>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            scale: {
+                mode: Phaser.Scale.FIT, // This scales the game to fit the window
+                autoCenter: Phaser.Scale.CENTER_BOTH, // This keeps it in the middle
+                width: 800,  // This is now your "Base" width
+                height: 600,  // This is now your "Base" height
+            },
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: { debug: false } // Set to true to see hitboxes
+            },
+            scene: { preload: preload, create: create, update: update }
+        };
+
+        const game = new Phaser.Game(config);
+        let player;
+        let cursors;
+
+        function preload() {
+            this.load.spritesheet('player', 'assets/lilbubu.png', { frameWidth: 212, frameHeight: 315 });
+            this.load.spritesheet('tiles', 'assets/tileset.png', { frameWidth: 64, frameHeight: 64 });
+            this.load.spritesheet('bubu', 'assets/tileset.png', { frameWidth: 212, frameHeight: 315 });
+        }
+
+        function create() {
+            // Fill the screen with 64x64 tiles
+            for (let y = 0; y < 600; y += 64) {
+                for (let x = 0; x < 800; x += 64) {
+                    this.add.image(x, y, 'tiles', 4).setOrigin(0);
+                }
+            }
+
+            // Create the player sprite and enable physics
+            player = this.physics.add.sprite(64 * 9 + 32, 64 * 5 + 24, 'player');
+            player.setScale(0.25);
+
+            // Set up keyboard controls
+            cursors = this.input.keyboard.createCursorKeys();
+
+            // This stops the player from walking off the screen
+            player.setCollideWorldBounds(true);
+
+            this.anims.create({
+                key: 'walk-left',
+                frames: [
+                    { key: 'player', frame: 13 },
+                    { key: 'player', frame: 8 },
+                    { key: 'player', frame: 9 },
+                    { key: 'player', frame: 10 }
+                ],
+                frameRate: 10,
+                repeat: -1
+            });
+
+            this.anims.create({
+                key: 'walk-right',
+                frames: [
+                    { key: 'player', frame: 13 },
+                    { key: 'player', frame: 8 },
+                    { key: 'player', frame: 9 },
+                    { key: 'player', frame: 10 }
+                ],
+                frameRate: 10,
+                repeat: -1
+            });
+
+            this.anims.create({
+                key: 'walk-up',
+                frames: this.anims.generateFrameNumbers('player', { start: 0, end: 3 }),
+                frameRate: 10,
+                repeat: -1
+            });
+
+            this.anims.create({
+                key: 'walk-down',
+                frames: this.anims.generateFrameNumbers('player', { start: 4, end: 7 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+
+
+        let isMoving = false;
+
+        function update() {
+            // If we are already moving, don't look for new input
+            if (isMoving) return;
+
+            // Check for input and trigger a 64px move
+            if (cursors.left.isDown) {
+                movePlayer(this, -64, 0, 'walk-left', true);
+            } else if (cursors.right.isDown) {
+                movePlayer(this, 64, 0, 'walk-right', false);
+            } else if (cursors.up.isDown) {
+                movePlayer(this, 0, -64, 'walk-up', false);
+            } else if (cursors.down.isDown) {
+                movePlayer(this, 0, 64, 'walk-down', false);
+            }
+        }
+
+        // Add 'scene' as the first parameter
+        function movePlayer(scene, xOffset, yOffset, animKey, flipX) {
+            isMoving = true;
+            player.setFlipX(flipX);
+            player.anims.play(animKey, true);
+
+            // Use 'scene.tweens' instead of 'this.tweens'
+            scene.tweens.add({
+                targets: player,
+                x: player.x + xOffset,
+                y: player.y + yOffset,
+                duration: 300,
+                onComplete: () => {
+                    isMoving = false;
+                    player.anims.stop();
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
