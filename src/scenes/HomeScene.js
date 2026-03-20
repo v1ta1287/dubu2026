@@ -1,8 +1,9 @@
 import Bubu from "../sprites/bubu.js";
 import Dudu from "../sprites/Dudu.js";
 import { GameState } from "../GameState.js";
+import BaseScene from "./BaseScene.js";
 
-export default class HomeScene extends Phaser.Scene {
+export default class HomeScene extends BaseScene {
     constructor() {
         super('HomeScene');
     }
@@ -25,6 +26,8 @@ export default class HomeScene extends Phaser.Scene {
     }
 
     create() {
+        super.create();
+
         // Scene containers
         this.walls = [];
         this.exits = [];
@@ -84,11 +87,6 @@ export default class HomeScene extends Phaser.Scene {
         this.dudu = new Dudu(this, 64 * 6 + 32, 64 + 32);
 
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        this.input.keyboard.on('keydown-I', () => {
-            // We only trigger the launch here
-            this.scene.pause();
-            this.scene.launch('InventoryScene');
-        });
     }
 
     update() {

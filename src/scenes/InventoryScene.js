@@ -58,7 +58,7 @@ export default class InventoryScene extends Phaser.Scene {
         });
 
         // 6. Close Logic
-        this.input.keyboard.on('keydown-I', () => {
+        this.input.keyboard.on('keydown-ESC', () => {
             if (this.isInspecting) {
                 this.closeInspectBubble();
             } else {
