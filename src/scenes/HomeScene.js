@@ -1,11 +1,20 @@
 import Bubu from "../sprites/bubu.js";
 import Dudu from "../sprites/Dudu.js";
-import { dialogueInteraction } from "../interactions.js";
+import { GameState } from "../GameState.js";
 
 export default class HomeScene extends Phaser.Scene {
     constructor() {
         super('HomeScene');
     }
+
+    init(data) {
+        // Use the passed X/Y, or a default if starting fresh
+        this.startPos = {
+            x: data.x || 64 * 4 + 32,
+            y: data.y || 64 * 4 + 32
+        };
+    }
+
 
     preload() {
         // NPCs
@@ -60,16 +69,26 @@ export default class HomeScene extends Phaser.Scene {
                 }
 
                 if (exitTiles.includes(tileIndex)) {
-                    this.exits.push({ x: posX + 32, y: posY + 32, target: 'ForestScene', direction: 'up' });
+                    this.exits.push({
+                        x: posX + 32, y: posY + 32,
+                        target: 'ForestScene', direction: 'up',
+                        spawnX: 64 * 4 + 32, spawnY: 64 * 6 + 32
+                    });
                 }
+
             });
         });
 
         // Characters
-        this.player = new Bubu(this, 64 * 4 + 32, 64 * 3 + 32);
+        this.player = new Bubu(this, this.startPos.x, this.startPos.y);
         this.dudu = new Dudu(this, 64 * 6 + 32, 64 + 32);
 
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.input.keyboard.on('keydown-I', () => {
+            // We only trigger the launch here
+            this.scene.pause();
+            this.scene.launch('InventoryScene');
+        });
     }
 
     update() {
@@ -80,7 +99,83 @@ export default class HomeScene extends Phaser.Scene {
 
         // Check for interaction
         if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-            dialogueInteraction(this.player, this.dudu, "Ello beanie", this)
+            this.handleDuduInteraction()
         }
+    }
+
+    // Inside your Scene where Dudu lives (e.g., HomeScene.js)
+    handleDuduInteraction() {
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.dudu.x, this.dudu.y);
+        if (dist > 80) return;
+
+        const bubuDir = this.player.anims.currentAnim ? this.player.anims.currentAnim.key : '';
+        const isFacingDudu = this.checkIfFacing(this.player, this.dudu, bubuDir);
+        if (!isFacingDudu) return;
+
+        let lines = [];
+        let onCompleteAction = null;
+
+        if (GameState.questStatus === 'NOT_STARTED') {
+            lines = [
+                "Hi Bubu! Happy birthday 🎂",
+                "I'm trying to decorate for your birthday party, but I'm short on flowers. 🌸",
+                "Could you find 3 Yellow Flowers, 3 Blue Flowers and 3 Pink Flowers for me? 💐",
+                "Once you get the flowers, I'll hand over your birthday present 🎁"
+            ];
+            onCompleteAction = () => { GameState.questStatus = 'ACTIVE'; };
+
+        } else if (GameState.questStatus === 'ACTIVE') {
+            const yellowCount = GameState.inventory["Yellow Flower"] || 0;
+            const blueCount = GameState.inventory["Blue Flower"] || 0;
+            const pinkCount = GameState.inventory["Pink Flower"] || 0;
+
+            if (yellowCount >= 3 && blueCount >= 3 && pinkCount >= 3) {
+                lines = [
+                    "Oh! You found them!",
+                    "These are perfect. Thank you so much, Bubu.",
+                    "Here is your birthday present! Open it whenever you like."
+                ];
+                onCompleteAction = () => {
+                    // Remove flowers, add present
+                    GameState.inventory["Yellow Flower"] -= 3;
+                    if (GameState.inventory["Yellow Flower"] === 0) delete GameState.inventory["Yellow Flower"];
+                    GameState.inventory["Blue Flower"] -= 3;
+                    if (GameState.inventory["Blue Flower"] === 0) delete GameState.inventory["Blue Flower"];
+                    GameState.inventory["Pink Flower"] -= 3;
+                    if (GameState.inventory["Pink Flower"] === 0) delete GameState.inventory["Pink Flower"];
+
+                    GameState.inventory["Birthday Present"] = 1;
+                    GameState.questStatus = 'COMPLETED';
+                };
+            } else {
+                lines = [`I still need 3 Yellow, Blue and Pink Flowers. You currently have ${yellowCount} Yellow, ${blueCount} Blue and ${pinkCount} Pink .`];
+            }
+
+        } else {
+            lines = ["Thanks again for the flowers! I hope you like the gift."];
+        }
+
+        // Launch the dialogue
+        this.scene.pause();
+        this.scene.launch('DialogueScene', { lines: lines, onComplete: onCompleteAction });
+    }
+
+    checkIfFacing(player, target, animKey) {
+        // Determine if the target is above, below, left, or right of the player
+        const dx = target.x - player.x;
+        const dy = target.y - player.y;
+
+        // We use a small buffer (20px) to determine the primary direction
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // Horizontal is the primary difference
+            if (dx > 0 && animKey.includes('right')) return true;
+            if (dx < 0 && animKey.includes('left')) return true;
+        } else {
+            // Vertical is the primary difference
+            if (dy > 0 && animKey.includes('down')) return true;
+            if (dy < 0 && animKey.includes('up')) return true;
+        }
+
+        return false;
     }
 }

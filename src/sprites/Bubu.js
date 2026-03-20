@@ -59,12 +59,16 @@ export default class Bubu extends Phaser.Physics.Arcade.Sprite {
             this.isMoving = true;
             this.stop();
 
+            this.scene.sound.play('enter', { volume: 0.2, detune: Phaser.Math.Between(-100, 100) });
             // 2. Start the fade out (duration in milliseconds, R, G, B)
             this.scene.cameras.main.fadeOut(500, 0, 0, 0);
 
             // 3. Wait for the fade to complete before switching
             this.scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-                this.scene.scene.start(currentExit.target);
+                this.scene.scene.start(currentExit.target, {
+                    x: currentExit.spawnX,
+                    y: currentExit.spawnY
+                });
             });
 
             return;
@@ -74,28 +78,25 @@ export default class Bubu extends Phaser.Physics.Arcade.Sprite {
         const targetX = this.x + xOffset;
         const targetY = this.y + yOffset;
 
+        const isOutOfBounds = (
+            targetX < 0 ||
+            targetX > 576 ||
+            targetY < 0 ||
+            targetY > 448
+        );
+
         const isWall = this.scene.walls.some(wall => {
             const dist = Phaser.Math.Distance.Between(targetX, targetY, wall.x, wall.y);
             return dist < 32; // If within 10 pixels of the wall's center, consider it a collision
         });
 
-        if (isWall) {
+        const isNPC = npc && Phaser.Math.Distance.Between(targetX, targetY, npc.x, npc.y) < 32;
+
+        if (isWall || isNPC || isOutOfBounds) {
             this.setFlipX(flipX);
             this.play(animKey, true);
             this.stop();
             return;
-        }
-
-        // CHECK FOR NPC COLLISION
-        // If the distance between the target and the NPC is very small, it's a wall!
-        if (npc) {
-            const distToNPC = Phaser.Math.Distance.Between(targetX, targetY, npc.x, npc.y);
-            if (distToNPC < 32) { // 32 is half a tile; basically 'is this the same tile?'
-                this.setFlipX(flipX);
-                this.play(animKey, true);
-                this.stop();
-                return;
-            }
         }
 
         // If path is clear, proceed with the Tween

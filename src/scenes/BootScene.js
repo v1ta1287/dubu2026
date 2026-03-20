@@ -8,6 +8,9 @@ export default class BootScene extends Phaser.Scene {
         this.load.spritesheet('player', 'assets/lilbubu.png', { frameWidth: 212, frameHeight: 315 });
         this.load.spritesheet('dudu', 'assets/lildudu.png', { frameWidth: 212, frameHeight: 315 })
         this.load.spritesheet('house', 'assets/house.png', { frameWidth: 64, frameHeight: 64 });
+
+        // Load audios
+        this.load.audio('enter', 'assets/audio/enter.mp3');
     }
 
     create() {

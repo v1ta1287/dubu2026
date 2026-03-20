@@ -5,6 +5,14 @@ export default class ForestScene extends Phaser.Scene {
         super('ForestScene');
     }
 
+    init(data) {
+        // Use the passed X/Y, or a default if starting fresh
+        this.startPos = {
+            x: data.x || 64 * 2 + 32,
+            y: data.y || 64 * 2 + 32
+        };
+    }
+
     preload() {
         // NPCs
         this.load.spritesheet('player', 'assets/lilbubu.png', { frameWidth: 212, frameHeight: 315 });
@@ -41,7 +49,11 @@ export default class ForestScene extends Phaser.Scene {
                 if (tileIndex === 1 || tileIndex === 6) {
                     this.add.image(posX, posY, 'forest', tileIndex).setOrigin(0);
                     if (exitTiles.includes(tileIndex)) {
-                        this.exits.push({ x: posX + 32, y: posY + 32, target: 'HomeScene', direction: 'down' });
+                        this.exits.push({
+                            x: posX + 32, y: posY + 32,
+                            target: 'HomeScene', direction: 'down',
+                            spawnX: 64 * 4 + 32, spawnY: 64 * 0 + 32
+                        });
                     }
                 } else {
                     // Everything else (Grass, Flowers, Tree) gets a base layer of Green Grass (0)
@@ -61,7 +73,7 @@ export default class ForestScene extends Phaser.Scene {
         });
 
         // Characters
-        this.player = new Bubu(this, 64 * 4 + 32, 64 * 6 + 32);
+        this.player = new Bubu(this, this.startPos.x, this.startPos.y);
         this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     }
 
